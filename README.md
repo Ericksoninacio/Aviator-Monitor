@@ -138,20 +138,27 @@ Este projeto é apenas uma **ferramenta educacional e experimental**.
 O uso é de inteira responsabilidade do usuário.
 
 ---
+## 📌 Casas de Apostas com Aviator no Brasil Disponivel para leitura
 
+- [x] **Superbet**  
+- [ ] **Betano** 
+- [ ] **bet365**   
+- [ ] **KTO**  
+- [ ] **Betnacional**  
+- [ ] **Novibet** 
+---
 ## 🚀 Próximos Melhoramentos (Roadmap)
 
-- Leitura avançada do histórico
-- Cooldown entre alertas
-- Estatísticas no popup
-- Offscreen API para som sem popup
-- Detecção de padrões personalizados
+- [x] Leitura avançada do histórico
+- [ ] Cooldown entre alertas
+- [ ] Estatísticas no popup
+- [ ] Detecção de padrões personalizados
 
 ---
 
 ## 👨‍💻 Autor
 
-Projeto desenvolvido com foco em **arquitetura limpa**, **respeito às regras do Chrome** e **estabilidade de longo prazo**.
+Projeto desenvolvido com foco em **Força de vontade kkkk**, **respeito às regras do Chrome** e **estabilidade de longo prazo**.
 
 ---
 
