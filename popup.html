@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Aviator Config</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <h2>⚙️ Configurações</h2>
+
+    <label>Modo:</label>
+    <select id="mode">
+        <option value="CONSERVADOR">Conservador</option>
+        <option value="MODERADO">Moderado</option>
+        <option value="AGRESSIVO">Agressivo</option>
+    </select>
+
+    <div class="checkbox">
+        <input type="checkbox" id="sound">
+        <label for="sound">Alerta sonoro</label>
+    </div>
+
+    <p class="status" id="status"></p>
+
+    <button id="testNotify">🔔 Testar Notificação</button>
+    <p id="status"></p>
+
+    <script src="popup.js"></script>
+</body>
+</html>

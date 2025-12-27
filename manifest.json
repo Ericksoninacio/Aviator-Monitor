@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "EKN Aviator Game Monitor",
+  "description": "Identificador de entradas do Aviator (Betano)",
+  "version": "1.0.0",
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Aviator Monitor de Sinais"
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.betano.bet.br/casino/games/aviator/*"
+      ],
+      "js": ["content.js"]
+    }
+  ],
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "notifications"
+  ],
+
+  "host_permissions": [
+    "https://www.betano.bet.br/*"
+  ],
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["sounds/alert.mp3"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
