@@ -2,28 +2,46 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Aviator Config</title>
+    <title>Aviator Monitor</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <h2>⚙️ Configurações</h2>
+    <div class="container">
+        <h2>🚀 Aviator Monitor</h2>
 
-    <label>Modo:</label>
-    <select id="mode">
-        <option value="CONSERVADOR">Conservador</option>
-        <option value="MODERADO">Moderado</option>
-        <option value="AGRESSIVO">Agressivo</option>
-    </select>
+        <label for="mode">Estratégia de Entrada:</label>
+        <select id="mode">
+            <option value="TESTE">Teste (A cada partida)</option>
+            <option value="CONSERVADOR">Conservador (5 baixas)</option>
+            <option value="MODERADO">Moderado (4 baixas)</option>
+            <option value="AGRESSIVO">Agressivo (3 baixas)</option>
+        </select>
 
-    <div class="checkbox">
-        <input type="checkbox" id="sound">
-        <label for="sound">Alerta sonoro</label>
+        <div class="checkbox-group">
+            <input type="checkbox" id="sound" checked>
+            <label for="sound" style="margin-bottom: 0; color: white;">
+                Alerta Sonoro Ativo
+            </label>
+        </div>
+
+        <!-- 🔢 ÚLTIMOS RESULTADOS -->
+        <div class="results-box">
+            <div class="results-title">Últimos resultados</div>
+            <div class="results" id="lastResults">
+                <span class="empty">Sem dados</span>
+            </div>
+        </div>
+
+        <button id="testNotify">
+            <span>🔔</span> Testar Notificação
+        </button>
+
+        <p class="status" id="status"></p>
+        
+        <div class="footer">
+            v1.3.1 • Desenvolvido para Alta Performance
+        </div>
     </div>
-
-    <p class="status" id="status"></p>
-
-    <button id="testNotify">🔔 Testar Notificação</button>
-    <p id="status"></p>
 
     <script src="popup.js"></script>
 </body>

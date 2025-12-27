@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "EKN Aviator Game Monitor",
-  "description": "Identificador de entradas do Aviator (Betano)",
-  "version": "1.0.0",
+  "name": "Aviator Monitor Superbet PRO",
+  "description": "Monitoramento avançado para Aviator na Superbet com alertas inteligentes.",
+  "version": "1.3.0",
 
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Aviator Monitor de Sinais"
+    "default_title": "Aviator Monitor"
   },
 
   "background": {
@@ -16,26 +16,30 @@
   "content_scripts": [
     {
       "matches": [
-        "https://www.betano.bet.br/casino/games/aviator/*"
+        "*://*.superbet.bet.br/*",
+        "*://*.superbet.com/*",
+        "*://*.spribegaming.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
 
   "permissions": [
-    "activeTab",
-    "scripting",
     "storage",
-    "notifications"
+    "notifications",
+    "activeTab",
+    "scripting"
   ],
 
   "host_permissions": [
-    "https://www.betano.bet.br/*"
+    "<all_urls>"
   ],
   
   "web_accessible_resources": [
     {
-      "resources": ["sounds/alert.mp3"],
+      "resources": ["sounds/*.mp3", "icons/*.png"],
       "matches": ["<all_urls>"]
     }
   ]

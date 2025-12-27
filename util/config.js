@@ -1,6 +1,6 @@
 module.exports = {
     NAVIGATION: {
-        BASE_URL: 'https://www.betano.bet.br/casino/games/aviator/25454/',
+        BASE_URL: 'https://superbet.bet.br',
         TIMEOUT: 60000
     }
 };
