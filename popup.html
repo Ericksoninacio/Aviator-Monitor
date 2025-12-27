@@ -2,28 +2,71 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Aviator Config</title>
+    <title>Aviator Monitor</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <h2>⚙️ Configurações</h2>
+    <div class="container">
+        <h2>🚀 Aviator Monitor</h2>
 
-    <label>Modo:</label>
-    <select id="mode">
-        <option value="CONSERVADOR">Conservador</option>
-        <option value="MODERADO">Moderado</option>
-        <option value="AGRESSIVO">Agressivo</option>
-    </select>
+        <label for="mode">Estratégia de Entrada:</label>
+        <select id="mode">
+            <option value="TESTE">Teste (A cada partida)</option>
+            <option value="CONSERVADOR">Conservador (5 baixas)</option>
+            <option value="MODERADO">Moderado (4 baixas)</option>
+            <option value="AGRESSIVO">Agressivo (3 baixas)</option>
+        </select>
 
-    <div class="checkbox">
-        <input type="checkbox" id="sound">
-        <label for="sound">Alerta sonoro</label>
+        <div class="checkbox-group">
+            <input type="checkbox" id="sound" checked>
+            <label for="sound" style="margin-bottom: 0; color: white;">Alerta Sonoro Ativo</label>
+        </div>
+
+        <div class="notification-type" style="margin-bottom: 20px; background: #1e293b; padding: 10px; border-radius: 8px;">
+        <label style="display: block; margin-bottom: 8px; font-size: 14px; color: #94a3b8;">
+            Tipo de Alerta:
+        </label>
+        
+        <div style="display: flex; gap: 10px;">
+            <label class="notification-option" style="flex: 1; text-align: center;">
+                <input type="radio" name="notificationType" value="PAGE_ALERT" checked>
+                <div style="margin-top: 5px; font-size: 11px;">Na Página</div>
+            </label>
+            
+            <label class="notification-option" style="flex: 1; text-align: center;">
+                <input type="radio" name="notificationType" value="CHROME_NOTIFICATION">
+                <div style="margin-top: 5px; font-size: 11px;">Chrome</div>
+            </label>
+            
+            <label class="notification-option" style="flex: 1; text-align: center;">
+                <input type="radio" name="notificationType" value="BOTH">
+                <div style="margin-top: 5px; font-size: 11px;">Ambos</div>
+            </label>
+        </div>
+        
+        <div id="notificationDesc" style="font-size: 10px; color: #64748b; margin-top: 8px; text-align: center;">
+            Alerta discreto na página (recomendado)
+        </div>
     </div>
 
-    <p class="status" id="status"></p>
+        <button id="testNotify">
+            <span>🔔</span> Testar Notificação
+        </button>
 
-    <button id="testNotify">🔔 Testar Notificação</button>
-    <p id="status"></p>
+        <div style="margin-top: 15px; background: #1e293b; padding: 10px; border-radius: 8px; font-size: 12px;">
+            <div style="color: #94a3b8; margin-bottom: 5px;">Status do Monitor:</div>
+            <div id="monitorStatus" style="color: #22c55e;">● Ativo</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 5px;">
+                Analisando histórico em tempo real
+            </div>
+        </div>
+        
+        <p class="status" id="status"></p>
+        
+        <div class="footer">
+            v1.2.0 • 4 Modos de Operação
+        </div>
+    </div>
 
     <script src="popup.js"></script>
 </body>
