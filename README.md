@@ -6,6 +6,17 @@ O projeto foi desenvolvido respeitando **todas as regras do Manifest V3**, garan
 
 ---
 
+## 🎁 Promoção – Giros Grátis na Superbet
+
+**JOGUE COMIGO E GANHE GIROS GRÁTIS NA SUPERBET!**  
+Cadastre-se, confirme sua identidade, deposite e aposte para ganhar **100 GIROS GRÁTIS** 🎰  
+
+👉 Divirta-se no link abaixo:  
+🔗 https://superbet.onelink.me/Hqv6/j3b293h9
+
+> ⚠️ Promoção sujeita às regras da plataforma Superbet.
+
+---
 ## 🎯 Objetivo do Projeto
 
 - Monitorar o histórico de multiplicadores do Aviator
