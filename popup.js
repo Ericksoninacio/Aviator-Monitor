@@ -37,7 +37,17 @@ const totalSinaisEl    = document.getElementById("totalSinais");
 const ultimoSinalEl    = document.getElementById("ultimoSinal");
 
 // Padrões
-const padroesList      = document.getElementById("padroesList");
+const padroesList       = document.getElementById("padroesList");
+const btnExportar       = document.getElementById("btnExportar");
+const btnImportar       = document.getElementById("btnImportar");
+const btnResetarPadroes = document.getElementById("btnResetarPadroes");
+const fileImport        = document.getElementById("fileImport");
+const importModalOverlay= document.getElementById("importModalOverlay");
+const importTextarea    = document.getElementById("importTextarea");
+const importStatus      = document.getElementById("importStatus");
+const btnImportarArquivo= document.getElementById("btnImportarArquivo");
+const btnCancelarImport = document.getElementById("btnCancelarImport");
+const btnConfirmarImport= document.getElementById("btnConfirmarImport");
 const padraoForm       = document.getElementById("padraoForm");
 const formTitle        = document.getElementById("formTitle");
 const fpNome           = document.getElementById("fpNome");
@@ -357,6 +367,110 @@ function removerPadrao(i) {
     salvarPadroes();
     renderPadroes();
 }
+
+// ══════════════════════════════════════════════
+//  EXPORTAR / IMPORTAR / RESETAR
+// ══════════════════════════════════════════════
+
+// EXPORTAR — gera arquivo JSON para download
+btnExportar.addEventListener("click", () => {
+    const json   = JSON.stringify(padroes, null, 2);
+    const blob   = new Blob([json], { type: "application/json" });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement("a");
+    a.href       = url;
+    a.download   = `aviator-padroes-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus("✔ Exportado", "#22c55e");
+});
+
+// IMPORTAR — abre modal
+btnImportar.addEventListener("click", () => {
+    importTextarea.value = "";
+    importStatus.textContent = "";
+    importStatus.style.color = "";
+    importModalOverlay.classList.remove("hidden");
+    importTextarea.focus();
+});
+
+// Importar via arquivo
+btnImportarArquivo.addEventListener("click", () => fileImport.click());
+
+fileImport.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        importTextarea.value = ev.target.result;
+        importStatus.textContent = `✔ Arquivo carregado: ${file.name}`;
+        importStatus.style.color = "#22c55e";
+    };
+    reader.readAsText(file);
+    fileImport.value = "";
+});
+
+// Fechar modal
+btnCancelarImport.addEventListener("click", () => {
+    importModalOverlay.classList.add("hidden");
+});
+importModalOverlay.addEventListener("click", (e) => {
+    if (e.target === importModalOverlay) importModalOverlay.classList.add("hidden");
+});
+
+// Confirmar importação
+btnConfirmarImport.addEventListener("click", () => {
+    try {
+        const raw = importTextarea.value.trim();
+        if (!raw) { setImportError("⚠ Cole o JSON antes de importar"); return; }
+
+        const dados = JSON.parse(raw);
+        const lista = Array.isArray(dados) ? dados : [dados];
+
+        // Valida cada padrão
+        const validos = [];
+        for (const p of lista) {
+            if (!p.nome || typeof p.nome !== "string") { setImportError(`⚠ Padrão sem nome: ${JSON.stringify(p)}`); return; }
+            if (!Array.isArray(p.sequencia) || p.sequencia.length !== 4) { setImportError(`⚠ Sequência inválida em "${p.nome}" — precisa ter 4 itens`); return; }
+            const allowed = ["BAIXO","MEDIO","ALTO"];
+            for (const cls of p.sequencia) {
+                if (!allowed.includes(cls)) { setImportError(`⚠ Classe inválida "${cls}" em "${p.nome}" — use BAIXO, MEDIO ou ALTO`); return; }
+            }
+            if (typeof p.confianca !== "number" || p.confianca <= 0 || p.confianca > 100) { setImportError(`⚠ Confiança inválida em "${p.nome}" — use 1-100`); return; }
+            validos.push({ nome: p.nome.toUpperCase().replace(/\s+/g,"_"), sequencia: p.sequencia, confianca: p.confianca });
+        }
+
+        // Mescla: evita duplicatas por nome
+        let adicionados = 0, atualizados = 0;
+        for (const novo of validos) {
+            const idx = padroes.findIndex(p => p.nome === novo.nome);
+            if (idx >= 0) { padroes[idx] = novo; atualizados++; }
+            else          { padroes.push(novo);  adicionados++; }
+        }
+
+        salvarPadroes();
+        renderPadroes();
+        importModalOverlay.classList.add("hidden");
+        showStatus(`✔ +${adicionados} novo(s), ${atualizados} atualizado(s)`, "#22c55e");
+
+    } catch (err) {
+        setImportError("⚠ JSON inválido: " + err.message);
+    }
+});
+
+function setImportError(msg) {
+    importStatus.textContent = msg;
+    importStatus.style.color = "#ef4444";
+}
+
+// RESETAR — restaura padrões default
+btnResetarPadroes.addEventListener("click", () => {
+    if (!confirm("Restaurar os 4 padrões padrão? Os padrões personalizados serão removidos.")) return;
+    padroes = [...PADROES_DEFAULT];
+    salvarPadroes();
+    renderPadroes();
+    showStatus("↺ Padrões restaurados", "#f59e0b");
+});
 
 // Init: carrega e renderiza padrões
 carregarPadroes(renderPadroes);

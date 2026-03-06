@@ -111,6 +111,36 @@
                     <button class="btn-add" id="btnNovoPadrao">+ Novo</button>
                 </div>
                 <div id="padroesList" class="padroes-list"></div>
+
+                <!-- Toolbar import/export -->
+                <div class="padroes-toolbar">
+                    <button class="btn-toolbar" id="btnExportar" title="Exportar padrões como JSON">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Exportar
+                    </button>
+                    <button class="btn-toolbar" id="btnImportar" title="Importar padrões de um JSON">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Importar
+                    </button>
+                    <button class="btn-toolbar btn-toolbar--danger" id="btnResetarPadroes" title="Restaurar padrões padrão">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="1 4 1 10 7 10"/>
+                            <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+                        </svg>
+                        Resetar
+                    </button>
+                </div>
+
+                <!-- Input oculto para leitura de arquivo -->
+                <input type="file" id="fileImport" accept=".json" style="display:none">
             </section>
 
             <section class="section padrao-form hidden" id="padraoForm">
@@ -226,6 +256,21 @@
         <footer class="footer">
             Aviator Monitor PRO • Alta Performance • Erickson Inácio
         </footer>
+    </div>
+
+    <!-- MODAL IMPORTAR PADRÕES -->
+    <div class="import-modal-overlay hidden" id="importModalOverlay">
+        <div class="import-modal">
+            <div class="import-modal-title">IMPORTAR PADRÕES</div>
+            <div class="import-modal-hint">Cole o JSON abaixo ou use o botão para carregar um arquivo .json</div>
+            <textarea class="import-textarea" id="importTextarea" placeholder='[{"nome":"MEU_PADRAO","sequencia":["BAIXO","BAIXO","MEDIO","ALTO"],"confianca":75}]'></textarea>
+            <div class="import-modal-hint" id="importStatus"></div>
+            <div class="import-modal-actions">
+                <button class="btn-cancel" id="btnImportarArquivo">📂 Arquivo</button>
+                <button class="btn-cancel" id="btnCancelarImport">Cancelar</button>
+                <button class="btn-save-padrao" id="btnConfirmarImport">Importar</button>
+            </div>
+        </div>
     </div>
 
     <script src="popup.js"></script>
