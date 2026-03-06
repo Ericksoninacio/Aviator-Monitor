@@ -602,3 +602,64 @@ body {
     transition: all .18s;
 }
 .btn-save-padrao:hover { background: rgba(56,189,248,.2); }
+
+/* ===== POWER BUTTON ===== */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-power {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid #1e3a5f;
+    background: transparent;
+    color: #334d6e;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .22s;
+    flex-shrink: 0;
+}
+.btn-power:hover {
+    border-color: #22c55e;
+    color: #22c55e;
+    box-shadow: 0 0 8px rgba(34,197,94,.25);
+}
+/* Estado: LIGADO */
+.btn-power.active {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: rgba(34,197,94,.1);
+    box-shadow: 0 0 10px rgba(34,197,94,.2);
+}
+/* Estado: DESLIGADO */
+.btn-power.off {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239,68,68,.08);
+    box-shadow: 0 0 8px rgba(239,68,68,.15);
+}
+
+/* ===== OFF BANNER ===== */
+.off-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 16px;
+    background: rgba(239,68,68,.08);
+    border-bottom: 1px solid rgba(239,68,68,.2);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #ef4444;
+    letter-spacing: .5px;
+}
+.off-banner.hidden { display: none; }
+
+/* Quando desligado — esmaece o conteúdo das abas */
+.shell.monitor-off .tab-pane {
+    opacity: .35;
+    pointer-events: none;
+    user-select: none;
+}

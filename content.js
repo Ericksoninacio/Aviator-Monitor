@@ -6,13 +6,14 @@ let currentConfig = {
     sound:            true,
     porcentagemBanca: 0.05,
     oddEntrada1:      1.30,
-    oddProtecao:      10.00,   // ← odd de saída da Aposta 2 (proteção)
+    oddProtecao:      10.00,
     valorMinimo:      1.00,
     autoEntrar:       false,
+    monitorAtivo:     true,    // ← botão liga/desliga geral
 };
 
 chrome.storage.local.get(
-    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "valorMinimo", "autoEntrar"],
+    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "valorMinimo", "autoEntrar", "monitorAtivo"],
     (data) => {
         if (data.mode)               currentConfig.mode             = data.mode;
         if (typeof data.sound === "boolean") currentConfig.sound    = data.sound;
@@ -20,7 +21,8 @@ chrome.storage.local.get(
         if (data.oddEntrada1)        currentConfig.oddEntrada1      = data.oddEntrada1;
         if (data.oddProtecao)        currentConfig.oddProtecao      = data.oddProtecao;
         if (data.valorMinimo)        currentConfig.valorMinimo      = data.valorMinimo;
-        if (typeof data.autoEntrar === "boolean") currentConfig.autoEntrar = data.autoEntrar;
+        if (typeof data.autoEntrar  === "boolean") currentConfig.autoEntrar  = data.autoEntrar;
+        if (typeof data.monitorAtivo === "boolean") currentConfig.monitorAtivo = data.monitorAtivo;
     }
 );
 
@@ -31,7 +33,8 @@ chrome.storage.onChanged.addListener((changes) => {
     if (changes.oddEntrada1)      currentConfig.oddEntrada1      = changes.oddEntrada1.newValue;
     if (changes.oddProtecao)      currentConfig.oddProtecao      = changes.oddProtecao.newValue;
     if (changes.valorMinimo)      currentConfig.valorMinimo      = changes.valorMinimo.newValue;
-    if (changes.autoEntrar !== undefined) currentConfig.autoEntrar = changes.autoEntrar.newValue;
+    if (changes.autoEntrar  !== undefined) currentConfig.autoEntrar  = changes.autoEntrar.newValue;
+    if (changes.monitorAtivo !== undefined) currentConfig.monitorAtivo = changes.monitorAtivo.newValue;
 });
 
 // ================= CLASSIFICAÇÃO =================
@@ -64,7 +67,7 @@ chrome.storage.local.get(["padroes"], (data) => {
     }
 });
 
-// Atualiza em tempo real quando o popup salva novos padrões
+// Atualiza padrões em tempo real quando o popup salva
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "PADROES_UPDATED" && Array.isArray(msg.padroes)) {
         PADROES = msg.padroes;
@@ -729,24 +732,69 @@ function verificarEFecharOverlay() {
     }
 }
 
-// MutationObserver: fecha assim que um modal aparece no DOM
-const overlayObserver = new MutationObserver(verificarEFecharOverlay);
-overlayObserver.observe(document.body, { childList: true, subtree: true });
-
-// Fallback periódico a cada 3s (para modais que não geram mutação)
-setInterval(verificarEFecharOverlay, 3000);
-
-// ================= OBSERVADORES =================
+// ================= CONTROLE GERAL (liga/desliga) =================
 let lastAlertTime = 0;
+let _intervalAnalise   = null;
+let _intervalOverlay   = null;
+let _observerAnalise   = null;
+let _observerText      = null;
+let _observerOverlay   = null;
 
-const observer = new MutationObserver(() => { analisarEEnviar(); });
-observer.observe(document.body, { childList: true, subtree: true });
+function ligarMonitor() {
+    if (_intervalAnalise) return; // já ligado
 
-const textObserver = new MutationObserver(() => {
-    const now = Date.now();
-    if (now - lastAlertTime > 3000) { lastAlertTime = now; analisarEEnviar(); }
+    console.log("[Aviator Monitor] ▶ Ligando monitor...");
+    ultimoHash = ""; // reseta hash para re-detectar tudo
+
+    // Observer principal de análise
+    _observerAnalise = new MutationObserver(() => { analisarEEnviar(); });
+    _observerAnalise.observe(document.body, { childList: true, subtree: true });
+
+    // Observer de texto (caracteres)
+    _observerText = new MutationObserver(() => {
+        const now = Date.now();
+        if (now - lastAlertTime > 3000) { lastAlertTime = now; analisarEEnviar(); }
+    });
+    _observerText.observe(document.body, { characterData: true, childList: true, subtree: true });
+
+    // Observer de overlays
+    _observerOverlay = new MutationObserver(verificarEFecharOverlay);
+    _observerOverlay.observe(document.body, { childList: true, subtree: true });
+
+    // Intervalos
+    _intervalAnalise = setInterval(analisarEEnviar, 1500);
+    _intervalOverlay = setInterval(verificarEFecharOverlay, 3000);
+
+    // Varredura inicial
+    setTimeout(analisarEEnviar, 500);
+
+    console.log("[Aviator Monitor] ✅ Monitor ativo.");
+}
+
+function desligarMonitor() {
+    console.log("[Aviator Monitor] ⏹ Desligando monitor...");
+
+    if (_observerAnalise)  { _observerAnalise.disconnect();  _observerAnalise  = null; }
+    if (_observerText)     { _observerText.disconnect();     _observerText     = null; }
+    if (_observerOverlay)  { _observerOverlay.disconnect();  _observerOverlay  = null; }
+    if (_intervalAnalise)  { clearInterval(_intervalAnalise); _intervalAnalise = null; }
+    if (_intervalOverlay)  { clearInterval(_intervalOverlay); _intervalOverlay = null; }
+
+    console.log("[Aviator Monitor] 🔴 Monitor parado.");
+}
+
+// Escuta SET_MONITOR do background
+chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === "SET_MONITOR") {
+        currentConfig.monitorAtivo = msg.ativo;
+        msg.ativo ? ligarMonitor() : desligarMonitor();
+    }
 });
-textObserver.observe(document.body, { characterData: true, childList: true, subtree: true });
 
-setInterval(analisarEEnviar, 1500);
-setTimeout(analisarEEnviar, 3000);
+// Inicializa conforme estado salvo
+chrome.storage.local.get(["monitorAtivo"], (data) => {
+    const ativo = data.monitorAtivo !== false; // padrão: ligado
+    currentConfig.monitorAtivo = ativo;
+    if (ativo) ligarMonitor();
+    else console.log("[Aviator Monitor] 🔴 Monitor iniciado desligado.");
+});

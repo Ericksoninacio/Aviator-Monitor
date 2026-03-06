@@ -90,6 +90,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ ok: true, ...state });
     }
 
+    // --- Liga/desliga geral → repassa ao content ---
+    if (msg.type === "SET_MONITOR") {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, { type: "SET_MONITOR", ativo: msg.ativo }).catch(() => {});
+            });
+        });
+    }
+
     // --- Padrões atualizados pelo popup → repassa ao content ---
     if (msg.type === "PADROES_UPDATED") {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {

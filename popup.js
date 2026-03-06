@@ -17,6 +17,9 @@ const protecaoSub      = document.getElementById("protecaoSub");
 const soundToggle      = document.getElementById("sound");
 const autoEntrarToggle = document.getElementById("autoEntrar");
 const saveStatus       = document.getElementById("saveStatus");
+const powerBtn         = document.getElementById("powerBtn");
+const offBanner        = document.getElementById("offBanner");
+const shell            = document.querySelector(".shell");
 const testBtn          = document.getElementById("testBtn");
 const resultsRow       = document.getElementById("resultsRow");
 const patternCard      = document.getElementById("patternCard");
@@ -91,6 +94,39 @@ function showStatus(msg, color) {
     saveStatus.style.color = color;
     setTimeout(() => saveStatus.textContent = "", 1800);
 }
+
+// ===== POWER (liga/desliga geral) =====
+let monitorAtivo = true;
+
+function aplicarEstadoPower(ativo) {
+    monitorAtivo = ativo;
+    if (ativo) {
+        powerBtn.classList.add("active");
+        powerBtn.classList.remove("off");
+        offBanner.classList.add("hidden");
+        shell.classList.remove("monitor-off");
+        powerBtn.title = "Monitor ligado — clique para desligar";
+    } else {
+        powerBtn.classList.remove("active");
+        powerBtn.classList.add("off");
+        offBanner.classList.remove("hidden");
+        shell.classList.add("monitor-off");
+        powerBtn.title = "Monitor desligado — clique para ligar";
+    }
+    chrome.storage.local.set({ monitorAtivo: ativo });
+    chrome.runtime.sendMessage({ type: "SET_MONITOR", ativo });
+}
+
+powerBtn.addEventListener("click", () => {
+    aplicarEstadoPower(!monitorAtivo);
+    showStatus(monitorAtivo ? "▶ Monitor ligado" : "⏹ Monitor pausado", monitorAtivo ? "#22c55e" : "#ef4444");
+});
+
+// Carrega estado inicial do power
+chrome.storage.local.get(["monitorAtivo"], (data) => {
+    const ativo = data.monitorAtivo !== false; // padrão: ligado
+    aplicarEstadoPower(ativo);
+});
 
 // ===== CLASSIFICAÇÃO =====
 function classificar(valor) {
