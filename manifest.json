@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Aviator Monitor Superbet PRO",
-  "description": "Monitoramento avançado para Aviator na Superbet com alertas inteligentes.",
+  "name": "Aviator Monitor PRO",
+  "description": "Monitoramento avançado para Aviator com alertas e entradas inteligentes.",
   "version": "1.3.0",
 
   "action": {

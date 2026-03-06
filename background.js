@@ -1,79 +1,118 @@
-console.log("🌐 [Aviator Monitor] Background Service Worker ativo.");
+console.log("🌐 [Aviator Monitor PRO] v2.0 — Background Service Worker ativo.");
 
 // ================= ESTADO GLOBAL =================
-let lastResults = [];
+let state = {
+    lastResults:      [],
+    lastSaldo:        null,
+    lastPadrao:       null,
+    lastApostas:      null,
+    lastClassificados: [],
+    totalSinais:      0,
+    ultimoSinal:      null,
+};
 
 // ================= INSTALAÇÃO =================
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.set({ mode: "TESTE", sound: true });
-    console.log("✅ [Aviator Monitor] Extensão instalada e config inicial definida.");
+    chrome.storage.local.set({
+        mode:             "CONSERVADOR",
+        sound:            true,
+        porcentagemBanca: 0.05,
+        oddEntrada1:      1.30,
+        valorMinimo:      1.00,
+    });
+    console.log("✅ [Aviator Monitor PRO] Instalado — configurações padrão definidas.");
 });
 
 // ================= MENSAGENS =================
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log("📩 [Aviator Monitor] Mensagem recebida no background:", msg.type);
 
-    // ================= SOM + ALERTA =================
-    if (msg.type === "PLAY_SOUND") {
+    // --- Análise completa enviada pelo content ---
+    if (msg.type === "UPDATE_ANALYSIS") {
+        state.lastResults       = msg.results      || [];
+        state.lastSaldo         = msg.saldo        ?? null;
+        state.lastPadrao        = msg.padrao       || null;
+        state.lastApostas       = msg.apostas      || null;
+        state.lastClassificados = msg.classificados || [];
 
-        // 1️⃣ Notificação do sistema
-        chrome.notifications.create({
-            type: "basic",
-            iconUrl: "icons/icon128.png",
-            title: "🚀 Oportunidade Aviator",
-            message: "Nova entrada confirmada! Verifique a mesa.",
+        // Propaga para o popup (se aberto)
+        chrome.runtime.sendMessage({ type: "ANALYSIS_UPDATE", ...state }).catch(() => {});
+    }
+
+    // --- Sinal confirmado pelo content ---
+    if (msg.type === "SIGNAL_DETECTED") {
+        state.totalSinais++;
+        state.ultimoSinal = new Date().toLocaleTimeString("pt-BR");
+
+        console.log(`🚀 [Aviator Monitor PRO] Sinal #${state.totalSinais}:`, msg.padrao?.nome);
+
+        // Notificação do sistema
+        const aposta1Txt = msg.apostas ? `R$ ${msg.apostas.valor1.toFixed(2)}` : "—";
+        const aposta2Txt = msg.apostas ? `R$ ${msg.apostas.valor2.toFixed(2)}` : "—";
+
+        chrome.notifications.create(`signal-${Date.now()}`, {
+            type:     "basic",
+            iconUrl:  "icons/icon128.png",
+            title:    `🚀 ${msg.padrao?.nome || "SINAL DETECTADO"}`,
+            message:  `Confiança: ${msg.padrao?.confianca}% | E1: ${aposta1Txt} | Proteção: ${aposta2Txt}`,
             priority: 2
         }, (id) => {
             if (chrome.runtime.lastError) {
-                console.error("❌ Erro ao criar notificação:", chrome.runtime.lastError);
-            } else {
-                console.log("🔔 Notificação enviada com sucesso, ID:", id);
+                console.error("❌ Notificação:", chrome.runtime.lastError);
             }
         });
 
-        // 2️⃣ Badge no ícone
-        chrome.action.setBadgeText({ text: "🔥" });
-        chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
+        // Badge animado
+        chrome.action.setBadgeText({ text: "●" });
+        chrome.action.setBadgeBackgroundColor({ color: "#22c55e" });
+        setTimeout(() => chrome.action.setBadgeText({ text: "" }), 8000);
 
-        // 3️⃣ Solicita execução de som (popup/content)
-        chrome.runtime.sendMessage({ type: "EXECUTE_SOUND" });
+        // Solicita som ao popup
+        chrome.runtime.sendMessage({ type: "EXECUTE_SOUND" }).catch(() => {});
 
-        setTimeout(() => {
-            chrome.action.setBadgeText({ text: "" });
-        }, 7000);
+        // Solicita alerta visual ao content
+        if (sender.tab?.id) {
+            chrome.storage.local.get(["autoEntrar"], ({ autoEntrar }) => {
+                chrome.tabs.sendMessage(sender.tab.id, {
+                    type:       "SHOW_VISUAL_ALERT",
+                    padrao:     msg.padrao,
+                    apostas:    msg.apostas,
+                    autoEntrar: autoEntrar === true
+                }).catch(() => {});
+            });
+        }
+
+        // Atualiza popup
+        chrome.runtime.sendMessage({ type: "ANALYSIS_UPDATE", ...state }).catch(() => {});
     }
 
-    // ================= TESTE =================
+    // --- Popup pede estado atual ---
+    if (msg.type === "GET_STATE") {
+        sendResponse({ ok: true, ...state });
+    }
+
+    // --- Padrões atualizados pelo popup → repassa ao content ---
+    if (msg.type === "PADROES_UPDATED") {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, {
+                    type: "PADROES_UPDATED",
+                    padroes: msg.padroes
+                }).catch(() => {});
+            });
+        });
+    }
+
+    // --- Teste manual ---
     if (msg.type === "TEST_NOTIFICATION") {
-        console.log("🧪 Executando teste de notificação...");
         chrome.notifications.create({
-            type: "basic",
-            iconUrl: "icons/icon128.png",
-            title: "🧪 Teste de Alerta",
-            message: "Se você está vendo isso, as notificações estão OK!",
+            type:     "basic",
+            iconUrl:  "icons/icon128.png",
+            title:    "🧪 Teste — Aviator Monitor PRO",
+            message:  "Sistema de alertas funcionando corretamente.",
             priority: 2
         });
-        chrome.runtime.sendMessage({ type: "EXECUTE_SOUND" });
+        chrome.runtime.sendMessage({ type: "EXECUTE_SOUND" }).catch(() => {});
     }
 
-    // ================= RECEBE RESULTADOS DO CONTENT =================
-    if (msg.type === "UPDATE_LAST_RESULTS") {
-        if (Array.isArray(msg.results)) {
-            lastResults = msg.results;
-            console.log("📊 [Aviator Monitor] Últimos resultados atualizados:", lastResults);
-            
-            chrome.runtime.sendMessage({
-            type: "UPDATE_LAST_RESULTS",
-            results: lastResults
-        });
-        
-        }
-    }
-
-    // ================= POPUP PEDE RESULTADOS =================
-    if (msg.type === "GET_LAST_RESULTS") {
-        sendResponse({ results: lastResults });
-    }
-
-    return true; // mantém canal aberto
+    return true;
 });

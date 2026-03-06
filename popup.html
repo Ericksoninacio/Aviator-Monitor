@@ -2,45 +2,213 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Aviator Monitor</title>
+    <title>Aviator Monitor PRO</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&family=DM+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <div class="container">
-        <h2>🚀 Aviator Monitor</h2>
+    <div class="shell">
 
-        <label for="mode">Estratégia de Entrada:</label>
-        <select id="mode">
-            <option value="TESTE">Teste (A cada partida)</option>
-            <option value="CONSERVADOR">Conservador (5 baixas)</option>
-            <option value="MODERADO">Moderado (4 baixas)</option>
-            <option value="AGRESSIVO">Agressivo (3 baixas)</option>
-        </select>
-
-        <div class="checkbox-group">
-            <input type="checkbox" id="sound" checked>
-            <label for="sound" style="margin-bottom: 0; color: white;">
-                Alerta Sonoro Ativo
-            </label>
-        </div>
-
-        <!-- 🔢 ÚLTIMOS RESULTADOS -->
-        <div class="results-box">
-            <div class="results-title">Últimos resultados</div>
-            <div class="results" id="lastResults">
-                <span class="empty">Sem dados</span>
+        <!-- HEADER -->
+        <header class="header">
+            <div class="brand">
+                <div class="brand-icon">✦</div>
+                <span class="brand-name">AVIATOR MONITOR</span>
+                <span class="brand-ver">PRO v2.0</span>
             </div>
+            <div class="pulse-dot" id="statusDot" title="Aguardando dados..."></div>
+        </header>
+
+        <!-- ABAS -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="monitor">Monitor</button>
+            <button class="tab-btn" data-tab="padroes">Padrões</button>
+            <button class="tab-btn" data-tab="config">Config</button>
         </div>
 
-        <button id="testNotify">
-            <span>🔔</span> Testar Notificação
-        </button>
+        <!-- ═══════ ABA: MONITOR ═══════ -->
+        <div class="tab-pane active" id="tab-monitor">
 
-        <p class="status" id="status"></p>
-        
-        <div class="footer">
-            v1.3.1 • Desenvolvido para Alta Performance
+            <section class="section">
+                <div class="section-label">ÚLTIMOS RESULTADOS</div>
+                <div class="results-row" id="resultsRow">
+                    <span class="no-data">— aguardando —</span>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-label">PADRÃO DETECTADO</div>
+                <div class="pattern-card" id="patternCard">
+                    <div class="pattern-none" id="patternNone">Nenhum padrão ativo</div>
+                    <div class="pattern-match hidden" id="patternMatch">
+                        <div class="pattern-name" id="patternName">—</div>
+                        <div class="pattern-conf">
+                            <div class="conf-bar-wrap">
+                                <div class="conf-bar" id="confBar"></div>
+                            </div>
+                            <span class="conf-val" id="confVal">—</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <div class="section-label">GESTÃO DE BANCA</div>
+                <div class="banca-row">
+                    <div class="banca-item">
+                        <div class="banca-lbl">SALDO</div>
+                        <div class="banca-val" id="saldoVal">—</div>
+                    </div>
+                    <div class="divider-v"></div>
+                    <div class="banca-item">
+                        <div class="banca-lbl">ENTRADA 1</div>
+                        <div class="banca-val green" id="entrada1Val">—</div>
+                        <div class="banca-sub" id="entrada1Sub">—</div>
+                    </div>
+                    <div class="divider-v"></div>
+                    <div class="banca-item">
+                        <div class="banca-lbl">PROTEÇÃO</div>
+                        <div class="banca-val amber" id="entrada2Val">—</div>
+                        <div class="banca-sub">@ 10x</div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="actions">
+                <button id="testBtn" class="btn-test"><span>◎</span> Testar Alerta</button>
+                <div class="stat-line">
+                    <span>Sinais: <b id="totalSinais">0</b></span>
+                    <span id="ultimoSinal" class="ultimo-sinal"></span>
+                </div>
+            </div>
+
         </div>
+
+        <!-- ═══════ ABA: PADRÕES ═══════ -->
+        <div class="tab-pane" id="tab-padroes">
+
+            <section class="section">
+                <div class="section-label-row">
+                    <span class="section-label" style="margin:0">PADRÕES ATIVOS</span>
+                    <button class="btn-add" id="btnNovoPadrao">+ Novo</button>
+                </div>
+                <div id="padroesList" class="padroes-list">
+                    <!-- renderizado por JS -->
+                </div>
+            </section>
+
+            <!-- FORM: criar/editar padrão -->
+            <section class="section padrao-form hidden" id="padraoForm">
+                <div class="section-label" id="formTitle">NOVO PADRÃO</div>
+
+                <div class="form-field">
+                    <label class="config-lbl">Nome</label>
+                    <input type="text" id="fpNome" class="config-input" placeholder="Ex: MINHA_SEQUENCIA" maxlength="24">
+                </div>
+
+                <div class="form-field" style="margin-top:8px">
+                    <label class="config-lbl">Sequência (mais recente → mais antigo)</label>
+                    <div class="seq-grid">
+                        <div class="seq-slot">
+                            <span class="seq-idx">[0]</span>
+                            <select class="seq-select" id="seq0">
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MEDIO">MEDIO</option>
+                                <option value="ALTO">ALTO</option>
+                            </select>
+                        </div>
+                        <div class="seq-slot">
+                            <span class="seq-idx">[1]</span>
+                            <select class="seq-select" id="seq1">
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MEDIO">MEDIO</option>
+                                <option value="ALTO">ALTO</option>
+                            </select>
+                        </div>
+                        <div class="seq-slot">
+                            <span class="seq-idx">[2]</span>
+                            <select class="seq-select" id="seq2">
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MEDIO">MEDIO</option>
+                                <option value="ALTO">ALTO</option>
+                            </select>
+                        </div>
+                        <div class="seq-slot">
+                            <span class="seq-idx">[3]</span>
+                            <select class="seq-select" id="seq3">
+                                <option value="BAIXO">BAIXO</option>
+                                <option value="MEDIO">MEDIO</option>
+                                <option value="ALTO">ALTO</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-field" style="margin-top:8px">
+                    <label class="config-lbl">Confiança (%)</label>
+                    <input type="number" id="fpConfianca" class="config-input" value="75" min="1" max="100" step="0.1">
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn-cancel" id="btnCancelarPadrao">Cancelar</button>
+                    <button class="btn-save-padrao" id="btnSalvarPadrao">Salvar Padrão</button>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- ═══════ ABA: CONFIG ═══════ -->
+        <div class="tab-pane" id="tab-config">
+            <section class="section config-section">
+                <div class="section-label">CONFIGURAÇÕES</div>
+
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label class="config-lbl" for="mode">Estratégia</label>
+                        <select id="mode" class="config-select">
+                            <option value="TESTE">Teste — todos</option>
+                            <option value="CONSERVADOR" selected>Conservador ≥80%</option>
+                            <option value="MODERADO">Moderado ≥70%</option>
+                            <option value="AGRESSIVO">Agressivo ≥60%</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <label class="config-lbl" for="porcentagem">% da Banca</label>
+                        <input type="number" id="porcentagem" class="config-input" value="5" min="1" max="50" step="1">
+                    </div>
+                    <div class="config-item">
+                        <label class="config-lbl" for="odd1">Odd Entrada 1</label>
+                        <input type="number" id="odd1" class="config-input" value="1.30" min="1.01" max="5" step="0.05">
+                    </div>
+                    <div class="config-item config-sound">
+                        <label class="config-lbl">Alerta Sonoro</label>
+                        <label class="toggle">
+                            <input type="checkbox" id="sound" checked>
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="auto-enter-row">
+                    <div class="auto-enter-info">
+                        <span class="auto-enter-title">Entrada Automática</span>
+                        <span class="auto-enter-sub">Marcado = clica Apostar · Desmarcado = só preenche</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="autoEntrar">
+                        <span class="toggle-track toggle-track--danger"></span>
+                    </label>
+                </div>
+            </section>
+        </div>
+
+        <p class="save-status" id="saveStatus"></p>
+
+        <footer class="footer">
+            Aviator Monitor PRO • Alta Performance • Erickson Inácio • 
+        </footer>
     </div>
 
     <script src="popup.js"></script>
