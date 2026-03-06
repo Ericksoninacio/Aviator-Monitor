@@ -6,17 +6,19 @@ let currentConfig = {
     sound:            true,
     porcentagemBanca: 0.05,
     oddEntrada1:      1.30,
+    oddProtecao:      10.00,   // ← odd de saída da Aposta 2 (proteção)
     valorMinimo:      1.00,
-    autoEntrar:       false,   // ← novo: decide se clica apostar ou só preenche
+    autoEntrar:       false,
 };
 
 chrome.storage.local.get(
-    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "valorMinimo", "autoEntrar"],
+    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "valorMinimo", "autoEntrar"],
     (data) => {
         if (data.mode)               currentConfig.mode             = data.mode;
         if (typeof data.sound === "boolean") currentConfig.sound    = data.sound;
         if (data.porcentagemBanca)   currentConfig.porcentagemBanca = data.porcentagemBanca;
         if (data.oddEntrada1)        currentConfig.oddEntrada1      = data.oddEntrada1;
+        if (data.oddProtecao)        currentConfig.oddProtecao      = data.oddProtecao;
         if (data.valorMinimo)        currentConfig.valorMinimo      = data.valorMinimo;
         if (typeof data.autoEntrar === "boolean") currentConfig.autoEntrar = data.autoEntrar;
     }
@@ -27,6 +29,7 @@ chrome.storage.onChanged.addListener((changes) => {
     if (changes.sound)            currentConfig.sound            = changes.sound.newValue;
     if (changes.porcentagemBanca) currentConfig.porcentagemBanca = changes.porcentagemBanca.newValue;
     if (changes.oddEntrada1)      currentConfig.oddEntrada1      = changes.oddEntrada1.newValue;
+    if (changes.oddProtecao)      currentConfig.oddProtecao      = changes.oddProtecao.newValue;
     if (changes.valorMinimo)      currentConfig.valorMinimo      = changes.valorMinimo.newValue;
     if (changes.autoEntrar !== undefined) currentConfig.autoEntrar = changes.autoEntrar.newValue;
 });
@@ -511,7 +514,7 @@ async function prepararCampos(apostas) {
     if (!apostas) return;
 
     const SAIDA_1 = currentConfig.oddEntrada1;
-    const SAIDA_2 = 10.00;
+    const SAIDA_2 = currentConfig.oddProtecao || 10.00;
 
     try {
         await aguardarModalSumir();

@@ -71,7 +71,7 @@
                     <div class="banca-item">
                         <div class="banca-lbl">PROTEÇÃO</div>
                         <div class="banca-val amber" id="entrada2Val">—</div>
-                        <div class="banca-sub">@ 10x</div>
+                        <div class="banca-sub" id="protecaoSub">@ 10x</div>
                     </div>
                 </div>
             </section>
@@ -179,8 +179,12 @@
                         <input type="number" id="porcentagem" class="config-input" value="5" min="1" max="50" step="1">
                     </div>
                     <div class="config-item">
-                        <label class="config-lbl" for="odd1">Odd Entrada 1</label>
-                        <input type="number" id="odd1" class="config-input" value="1.30" min="1.01" max="5" step="0.05">
+                        <label class="config-lbl" for="odd1">Entrada 1</label>
+                        <input type="number" id="odd1" class="config-input" value="1.30" min="1.01" max="10" step="0.05">
+                    </div>
+                    <div class="config-item">
+                        <label class="config-lbl" for="odd2">Entrada 2</label>
+                        <input type="number" id="odd2" class="config-input" value="10.00" min="1.01" max="100" step="0.5">
                     </div>
                     <div class="config-item config-sound">
                         <label class="config-lbl">Alerta Sonoro</label>
@@ -207,7 +211,7 @@
         <p class="save-status" id="saveStatus"></p>
 
         <footer class="footer">
-            Aviator Monitor PRO • Alta Performance • Erickson Inácio • 
+            Aviator Monitor PRO • Alta Performance
         </footer>
     </div>
 

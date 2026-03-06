@@ -12,6 +12,8 @@ const PADROES_DEFAULT = [
 const modeSelect       = document.getElementById("mode");
 const porcentagemInp   = document.getElementById("porcentagem");
 const odd1Inp          = document.getElementById("odd1");
+const odd2Inp          = document.getElementById("odd2");
+const protecaoSub      = document.getElementById("protecaoSub");
 const soundToggle      = document.getElementById("sound");
 const autoEntrarToggle = document.getElementById("autoEntrar");
 const saveStatus       = document.getElementById("saveStatus");
@@ -58,6 +60,7 @@ chrome.storage.local.get(
         if (data.mode)             modeSelect.value   = data.mode;
         if (data.porcentagemBanca) porcentagemInp.value = Math.round(data.porcentagemBanca * 100);
         if (data.oddEntrada1)      odd1Inp.value      = data.oddEntrada1;
+        if (data.oddProtecao)      odd2Inp.value      = data.oddProtecao;
         soundToggle.checked    = data.sound !== false;
         if (typeof data.autoEntrar === "boolean") autoEntrarToggle.checked = data.autoEntrar;
     }
@@ -67,17 +70,19 @@ chrome.storage.local.get(
 function save() {
     const porcentagem = parseFloat(porcentagemInp.value) / 100;
     const odd1        = parseFloat(odd1Inp.value);
+    const odd2        = parseFloat(odd2Inp.value);
     chrome.storage.local.set({
         mode:             modeSelect.value,
         sound:            soundToggle.checked,
         autoEntrar:       autoEntrarToggle.checked,
-        porcentagemBanca: isNaN(porcentagem) ? 0.05 : Math.max(0.01, Math.min(0.5, porcentagem)),
-        oddEntrada1:      isNaN(odd1)        ? 1.30 : Math.max(1.01, Math.min(10, odd1)),
+        porcentagemBanca: isNaN(porcentagem) ? 0.05  : Math.max(0.01,  Math.min(0.5,  porcentagem)),
+        oddEntrada1:      isNaN(odd1)        ? 1.30  : Math.max(1.01,  Math.min(10,   odd1)),
+        oddProtecao:      isNaN(odd2)        ? 10.00 : Math.max(1.01,  Math.min(100,  odd2)),
     });
     showStatus("✔ Salvo", "#22c55e");
 }
 
-[modeSelect, porcentagemInp, odd1Inp, soundToggle, autoEntrarToggle].forEach(el => {
+[modeSelect, porcentagemInp, odd1Inp, odd2Inp, soundToggle, autoEntrarToggle].forEach(el => {
     el.addEventListener("change", save);
 });
 
@@ -133,10 +138,13 @@ function renderPattern(padrao) {
 
 // ===== RENDERIZAR BANCA =====
 function renderBanca(saldo, apostas) {
-    saldoVal.textContent   = saldo != null ? `R$ ${saldo.toFixed(2)}` : "—";
+    saldoVal.textContent    = saldo != null ? `R$ ${saldo.toFixed(2)}` : "—";
     entrada1Val.textContent = apostas ? `R$ ${apostas.valor1.toFixed(2)}` : "—";
     entrada1Sub.textContent = apostas ? `@ ${apostas.oddEntrada1}x` : "—";
     entrada2Val.textContent = apostas ? `R$ ${apostas.valor2.toFixed(2)}` : "—";
+    // Atualiza label da proteção com a odd configurada
+    const oddP = parseFloat(odd2Inp.value) || 10;
+    if (protecaoSub) protecaoSub.textContent = `@ ${oddP}x`;
 }
 
 // ===== ATUALIZAÇÃO COMPLETA =====
