@@ -81,13 +81,34 @@ A cada **nova rodada detectada** (hash de resultados muda):
 ## 💰 Gestão de Banca
 
 ```
-valor_1 = max(saldo × % banca,  R$ 1,00)
+valor_1 = max(saldo × % banca,       R$ 1,00)
 lucro_1 = valor_1 × (odd_entrada1 - 1)
-valor_2 = max(lucro_1,          R$ 1,00)
+valor_2 = max(lucro_1,               R$ 1,00)
 ```
 
 - **Entrada 1** → sai na odd configurada (padrão: 1.30x)
-- **Proteção** → sai em 10x (cobre o custo da Entrada 1)
+- **Proteção** → sai na odd2 configurada (padrão: 10x)
+
+---
+
+## 🛑 Stop Loss / Stop Gain
+
+Calculados sobre o **saldo capturado no momento em que o monitor é ligado**:
+
+```
+variação% = (saldo_atual - saldo_inicial) / saldo_inicial × 100
+
+Stop Loss → desliga se variação ≤ -X%
+Stop Gain → desliga se variação ≥ +Y%
+```
+
+Ao ser acionado:
+1. Todos os observers e intervalos são desativados imediatamente
+2. Notificação do sistema com `requireInteraction: true`
+3. Botão power no popup atualiza para vermelho
+4. Estado `monitorAtivo: false` persiste no storage
+
+> `0 = desativado`. Configurados na aba Config.
 
 ---
 
@@ -106,36 +127,45 @@ Quando padrão detectado, **4 sinais simultâneos**:
 
 ## 🖥️ Interface do Popup
 
-O popup é organizado em **3 abas**:
+### ⚡ Botão Power (header)
+- **Verde** — monitor ligado, saldo inicial capturado
+- **Vermelho** — monitor desligado, zero CPU, zero leitura de DOM
+- Estado persiste entre sessões
 
-### 📊 Monitor
-- Chips coloridos dos últimos 6 resultados com classificação
+### 📊 Aba Monitor
+- Chips coloridos dos últimos 6 resultados
 - Card do padrão detectado com barra de confiança animada
-- Gestão de banca: Saldo / Entrada 1 / Proteção em tempo real
+- Saldo / Entrada 1 / Proteção em tempo real
 - Botão de teste de alerta + contador de sinais
 
-### 🎲 Padrões
-- Lista todos os padrões com badges coloridos da sequência
-- **Criar** novos padrões com nome, sequência e confiança
-- **Editar** padrões existentes
-- **Remover** padrões
-- Alterações propagam ao `content.js` instantaneamente
+### 🎲 Aba Padrões
+- Lista com badges coloridos da sequência
+- CRUD completo (criar / editar / remover)
+- **Exportar** — baixa `.json` com todos os padrões
+- **Importar** — cola JSON ou carrega arquivo com validação
+- **Resetar** — restaura padrões padrão
 
-### ⚙️ Config
-- Estratégia (Teste / Conservador / Moderado / Agressivo)
-- % da Banca (1–50%)
-- Odd Entrada 1 (1.01–10)
-- Alerta Sonoro (toggle)
-- **Entrada Automática** — `Marcado = clica Apostar · Desmarcado = só preenche`
+### ⚙️ Aba Config
+| Campo | Padrão |
+|---|---|
+| Estratégia | Conservador ≥20% |
+| % da Banca | 5% |
+| Odd Entrada 1 | 1.30x |
+| Odd Proteção (E2) | 10.00x |
+| Stop Loss | 0 (desativado) |
+| Stop Gain | 0 (desativado) |
+| Alerta Sonoro | Ligado |
+| Entrada Automática | Desligado |
 
 ---
 
 ## 🧩 Arquitetura
 
 ```
-content.js    → lê DOM, detecta padrões, preenche/clica apostas, fecha overlays
-background.js → estado global, notificações, badge, relay de mensagens
-popup.js      → interface, configurações, CRUD de padrões, áudio
+content.js    → lê DOM, detecta padrões, stop loss/gain, preenche/clica apostas
+background.js → estado global, notificações, badge, relay, foco de aba
+popup.js      → interface, configurações, CRUD, import/export, áudio
+popup.css     → tema escuro, componentes visuais
 manifest.json → permissões, content scripts, ícones
 ```
 
@@ -154,6 +184,8 @@ aviator-monitor/
 ├── sounds/
 │   └── alert.mp3
 └── icons/
+    ├── icon16.png
+    ├── icon48.png
     └── icon128.png
 ```
 
@@ -165,7 +197,22 @@ aviator-monitor/
 2. Ative **Modo do Desenvolvedor**
 3. Clique em **Carregar sem compactação**
 4. Selecione a pasta do projeto
-5. A extensão aparecerá na barra do Chrome
+
+---
+
+## 📁 Formato JSON para Importação de Padrões
+
+```json
+[
+  {
+    "nome": "MEU_PADRAO",
+    "sequencia": ["BAIXO", "MEDIO", "ALTO", "BAIXO"],
+    "confianca": 19.2
+  }
+]
+```
+
+Regras: `sequencia` com exatamente 4 itens (`BAIXO`, `MEDIO` ou `ALTO`), `confianca` entre 1–100. Duplicatas por nome são mescladas.
 
 ---
 
@@ -174,8 +221,7 @@ aviator-monitor/
 - O Chrome não permite abrir popup automaticamente
 - O Service Worker (MV3) não pode reproduzir áudio — gerenciado pelo popup
 - O alerta sonoro depende de interação prévia com o popup
-- Seletores DOM podem variar entre versões da plataforma — fallbacks múltiplos estão implementados
-- O botão Apostar precisa estar no estado correto para ser clicado (não estar em aposta ativa)
+- Seletores DOM podem variar entre versões da plataforma
 
 ---
 
@@ -196,15 +242,18 @@ aviator-monitor/
 ## 🚀 Roadmap
 
 - [x] Leitura avançada do histórico (seletores universais + fallback por regex)
-- [x] Classificação de velas espelhando a plataforma (CRASH / BAIXO / MEDIO / ALTO)
-- [x] Detecção de padrões com limiares por estratégia
-- [x] Padrões configuráveis pelo popup (CRUD completo)
+- [x] Classificação calibrada com dados reais (BAIXO / MEDIO / ALTO)
+- [x] Limiares de estratégia baseados em 5.000 rodadas reais
+- [x] Padrões configuráveis — CRUD completo
+- [x] Importação e exportação de padrões em JSON
 - [x] Gestão de banca automática
-- [x] Preenchimento automático dos campos Angular (input/change/blur)
-- [x] Fechar overlays/modais automaticamente (MutationObserver + intervalo)
+- [x] Odd de Proteção configurável
+- [x] Preenchimento automático dos campos Angular
+- [x] Fechar overlays/modais automaticamente
 - [x] Entrada automática com checkbox de segurança
-- [x] Modo Auto / Automático (compatível com ambos os textos)
-- [x] Popup com tema escuro e tipografia DM Sans / DM Mono
+- [x] Botão power — liga/desliga completo
+- [x] Stop Loss e Stop Gain por % da banca
+- [x] Notificações com auto-fechamento e foco na aba do jogo
 - [ ] Cooldown configurável entre alertas
 - [ ] Estatísticas de acerto por padrão
 - [ ] Exportação do histórico de sinais
@@ -212,8 +261,6 @@ aviator-monitor/
 
 ---
 
-## 👨‍💻 Autor Erickson Inácio
+## 👨‍💻 Autor
 
-Desenvolvido com **força de vontade kkkk**, respeito às regras do Chrome e foco em estabilidade de longo prazo.
-
-Se precisar evoluir o projeto, continue com cautela e testes constantes.
+**Erickson Inácio** — Desenvolvido com força de vontade, respeito às regras do Chrome e foco em estabilidade de longo prazo.
