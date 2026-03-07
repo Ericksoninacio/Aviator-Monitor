@@ -76,6 +76,7 @@
                     <div class="banca-item">
                         <div class="banca-lbl">SALDO</div>
                         <div class="banca-val" id="saldoVal">—</div>
+                        <div class="banca-pct" id="bancaPct"></div>
                     </div>
                     <div class="divider-v"></div>
                     <div class="banca-item">
@@ -89,6 +90,13 @@
                         <div class="banca-val amber" id="entrada2Val">—</div>
                         <div class="banca-sub" id="protecaoSub">@ 10x</div>
                     </div>
+                </div>
+                <div class="sessao-bar" id="sessaoBar">
+                    <div class="sessao-info">
+                        <span class="sessao-lbl">SESSÃO</span>
+                        <span class="sessao-timer" id="sessaoTimer">--:--</span>
+                    </div>
+                    <button class="btn-nova-sessao" id="btnNovaSessao" title="Nova sessão — zera referência de lucro/perda">&#8635; Nova Sessão</button>
                 </div>
             </section>
 
@@ -274,6 +282,25 @@
                         <input type="checkbox" id="autoEntrar">
                         <span class="toggle-track toggle-track--danger"></span>
                     </label>
+                </div>
+
+                <!-- Auto Refresh -->
+                <div class="auto-enter-row" style="margin-top:8px">
+                    <div class="auto-enter-info">
+                        <span class="auto-enter-title">Auto Refresh</span>
+                        <span class="auto-enter-sub">Recarrega a página do jogo automaticamente</span>
+                    </div>
+                    <label class="toggle">
+                        <input type="checkbox" id="autoRefresh">
+                        <span class="toggle-track"></span>
+                    </label>
+                </div>
+                <div class="refresh-interval-row" id="refreshIntervalRow">
+                    <label class="config-lbl">Intervalo (minutos)</label>
+                    <div class="refresh-interval-control">
+                        <input type="number" id="refreshInterval" class="config-input" value="30" min="1" max="120" step="1">
+                        <span class="refresh-countdown" id="refreshCountdown"></span>
+                    </div>
                 </div>
             </section>
         </div>

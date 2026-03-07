@@ -17,7 +17,11 @@ const stopLossInp      = document.getElementById("stopLoss");
 const stopGainInp      = document.getElementById("stopGain");
 const protecaoSub      = document.getElementById("protecaoSub");
 const soundToggle      = document.getElementById("sound");
-const autoEntrarToggle = document.getElementById("autoEntrar");
+const autoEntrarToggle   = document.getElementById("autoEntrar");
+const autoRefreshToggle  = document.getElementById("autoRefresh");
+const refreshIntervalInp = document.getElementById("refreshInterval");
+const refreshIntervalRow = document.getElementById("refreshIntervalRow");
+const refreshCountdown   = document.getElementById("refreshCountdown");
 const saveStatus       = document.getElementById("saveStatus");
 const powerBtn         = document.getElementById("powerBtn");
 const offBanner        = document.getElementById("offBanner");
@@ -31,6 +35,7 @@ const patternName      = document.getElementById("patternName");
 const confBar          = document.getElementById("confBar");
 const confVal          = document.getElementById("confVal");
 const saldoVal         = document.getElementById("saldoVal");
+const bancaPct         = document.getElementById("bancaPct");
 const entrada1Val      = document.getElementById("entrada1Val");
 const entrada1Sub      = document.getElementById("entrada1Sub");
 const entrada2Val      = document.getElementById("entrada2Val");
@@ -70,7 +75,7 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
 // ===== CARREGAR CONFIGURAÇÕES =====
 chrome.storage.local.get(
-    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "autoEntrar", "stopLoss", "stopGain"],
+    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "autoEntrar", "stopLoss", "stopGain", "autoRefresh", "refreshInterval"],
     (data) => {
         if (data.mode)             modeSelect.value   = data.mode;
         if (data.porcentagemBanca) porcentagemInp.value = Math.round(data.porcentagemBanca * 100);
@@ -80,6 +85,12 @@ chrome.storage.local.get(
         if (data.stopGain !== undefined) stopGainInp.value = data.stopGain;
         soundToggle.checked    = data.sound !== false;
         if (typeof data.autoEntrar === "boolean") autoEntrarToggle.checked = data.autoEntrar;
+        if (typeof data.autoRefresh === "boolean") {
+            autoRefreshToggle.checked = data.autoRefresh;
+            refreshIntervalRow.style.display = data.autoRefresh ? "" : "none";
+        }
+        if (data.refreshInterval) refreshIntervalInp.value = data.refreshInterval;
+        atualizarContagem();
     }
 );
 
@@ -92,6 +103,8 @@ function save() {
         mode:             modeSelect.value,
         sound:            soundToggle.checked,
         autoEntrar:       autoEntrarToggle.checked,
+        autoRefresh:      autoRefreshToggle.checked,
+        refreshInterval:  Math.max(1, Math.min(120, parseInt(refreshIntervalInp.value) || 30)),
         porcentagemBanca: isNaN(porcentagem) ? 0.05  : Math.max(0.01,  Math.min(0.5,  porcentagem)),
         oddEntrada1:      isNaN(odd1)        ? 1.30  : Math.max(1.01,  Math.min(10,   odd1)),
         oddProtecao:      isNaN(odd2)        ? 10.00 : Math.max(1.01,  Math.min(100,  odd2)),
@@ -101,9 +114,30 @@ function save() {
     showStatus("✔ Salvo", "#22c55e");
 }
 
-[modeSelect, porcentagemInp, odd1Inp, odd2Inp, stopLossInp, stopGainInp, soundToggle, autoEntrarToggle].forEach(el => {
+[modeSelect, porcentagemInp, odd1Inp, odd2Inp, stopLossInp, stopGainInp, soundToggle, autoEntrarToggle, autoRefreshToggle, refreshIntervalInp].forEach(el => {
     el.addEventListener("change", save);
 });
+
+// Mostra/oculta campo de intervalo conforme checkbox
+autoRefreshToggle.addEventListener("change", () => {
+    refreshIntervalRow.style.display = autoRefreshToggle.checked ? "" : "none";
+});
+
+// Placeholder para contagem regressiva (utilizado pelo background)
+function atualizarContagem() {
+    if (!autoRefreshToggle.checked) {
+        refreshCountdown.textContent = "";
+        return;
+    }
+    chrome.storage.local.get(["refreshNextAt"], (data) => {
+        if (!data.refreshNextAt) { refreshCountdown.textContent = ""; return; }
+        const diff = Math.max(0, Math.round((data.refreshNextAt - Date.now()) / 1000));
+        const m = Math.floor(diff / 60).toString().padStart(2,"0");
+        const s = (diff % 60).toString().padStart(2,"0");
+        refreshCountdown.textContent = `${m}:${s}`;
+    });
+}
+setInterval(atualizarContagem, 1000);
 
 function showStatus(msg, color) {
     saveStatus.textContent = msg;
@@ -189,12 +223,110 @@ function renderPattern(padrao) {
 }
 
 // ===== RENDERIZAR BANCA =====
+// ===== SESSÃO DE LUCRO/PERDA =====
+const sessaoTimerEl  = document.getElementById("sessaoTimer");
+const btnNovaSessao  = document.getElementById("btnNovaSessao");
+
+// Cache em memória — única fonte da verdade para a sessão atual
+// Evita race condition: renderBanca é chamado a cada 1.5s e o storage.get
+// é assíncrono, então sem cache a sessão seria recriada repetidamente.
+let _sessao     = null;   // { saldoInicial, inicio }
+let _lastSaldo  = null;
+
+// Ao abrir o popup, restaura sessão — reseta se for de outro dia
+chrome.storage.local.get(["sessao", "lastSaldo"], (data) => {
+    if (data.sessao) {
+        const diaSession = new Date(data.sessao.inicio).toDateString();
+        const diaHoje    = new Date().toDateString();
+        if (diaSession !== diaHoje) {
+            // Sessão é de outro dia — descarta e aguarda primeiro saldo
+            chrome.storage.local.remove(["sessao", "lastSaldo"]);
+            console.log("[Aviator Monitor] 🗓 Sessão anterior de outro dia — resetada.");
+        } else {
+            _sessao    = data.sessao;
+            _lastSaldo = data.lastSaldo ?? null;
+        }
+    }
+});
+
+function iniciarNovaSessao(saldo) {
+    _sessao = { saldoInicial: saldo, inicio: Date.now() };
+    chrome.storage.local.set({ sessao: _sessao });
+    atualizarSessaoUI(saldo);
+}
+
+function atualizarSessaoUI(saldoAtual) {
+    if (!_sessao) return;
+
+    // Percentual em relação ao saldo inicial
+    const pct = ((saldoAtual - _sessao.saldoInicial) / _sessao.saldoInicial) * 100;
+    const abs = Math.abs(pct).toFixed(2);
+    if (pct > 0.005) {
+        bancaPct.textContent = `▲ +${abs}%`;
+        bancaPct.className   = "banca-pct gain";
+    } else if (pct < -0.005) {
+        bancaPct.textContent = `▼ -${abs}%`;
+        bancaPct.className   = "banca-pct loss";
+    } else {
+        bancaPct.textContent = "0.00%";
+        bancaPct.className   = "banca-pct";
+    }
+
+    // Timer — tempo decorrido desde o início (conta para cima: 00:00, 00:01...)
+    const elapsed = Date.now() - _sessao.inicio;
+    const m = Math.floor(elapsed / 60000).toString().padStart(2, "0");
+    const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, "0");
+    sessaoTimerEl.textContent = `${m}:${s}`;
+}
+
+// Tick do timer — usa apenas cache em memória, sem storage.get
+setInterval(() => {
+    if (_sessao && _lastSaldo != null) atualizarSessaoUI(_lastSaldo);
+}, 1000);
+
+// Botão Nova Sessão — reinicia manualmente
+btnNovaSessao.addEventListener("click", () => {
+    const saldo = _lastSaldo;
+    if (saldo != null) {
+        iniciarNovaSessao(saldo);
+        // Avisa o content.js para atualizar o _saldoInicial (Stop Loss/Gain)
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            tabs.forEach(tab => {
+                chrome.tabs.sendMessage(tab.id, { type: "NOVA_SESSAO", saldoInicial: saldo }).catch(() => {});
+            });
+        });
+        showStatus("↺ Nova sessão iniciada", "#38bdf8");
+    } else {
+        _sessao = null;
+        chrome.storage.local.remove("sessao");
+        bancaPct.textContent      = "";
+        sessaoTimerEl.textContent = "--:--";
+        showStatus("↺ Sessão resetada", "#38bdf8");
+    }
+});
+
 function renderBanca(saldo, apostas) {
-    saldoVal.textContent    = saldo != null ? `R$ ${saldo.toFixed(2)}` : "—";
+    saldoVal.textContent = saldo != null ? `R$ ${saldo.toFixed(2)}` : "—";
+
+    if (saldo != null) {
+        _lastSaldo = saldo;
+        chrome.storage.local.set({ lastSaldo: saldo });
+
+        if (!_sessao) {
+            // Primeira leitura — inicia sessão automaticamente
+            iniciarNovaSessao(saldo);
+        } else {
+            // Sessão já existe — só atualiza o percentual, nunca reinicia
+            atualizarSessaoUI(saldo);
+        }
+    } else {
+        bancaPct.textContent = "";
+        bancaPct.className   = "banca-pct";
+    }
+
     entrada1Val.textContent = apostas ? `R$ ${apostas.valor1.toFixed(2)}` : "—";
     entrada1Sub.textContent = apostas ? `@ ${apostas.oddEntrada1}x` : "—";
     entrada2Val.textContent = apostas ? `R$ ${apostas.valor2.toFixed(2)}` : "—";
-    // Atualiza label da proteção com a odd configurada
     const oddP = parseFloat(odd2Inp.value) || 10;
     if (protecaoSub) protecaoSub.textContent = `@ ${oddP}x`;
 }

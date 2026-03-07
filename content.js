@@ -734,9 +734,15 @@ function triggerAlert(padrao, apostas, autoEntrar) {
 }
 
 // Escuta confirmação do background para exibir alerta visual
+// Só exibe no frame principal para evitar cards duplicados (all_frames: true)
 chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === "SHOW_VISUAL_ALERT") {
+    if (msg.type === "SHOW_VISUAL_ALERT" && window === window.top) {
         triggerAlert(msg.padrao, msg.apostas, msg.autoEntrar);
+    }
+    // Atualiza referência de saldo ao iniciar nova sessão
+    if (msg.type === "NOVA_SESSAO") {
+        _saldoInicial = msg.saldoInicial;
+        console.log("[Aviator Monitor] 🔄 Nova sessão — saldo inicial:", _saldoInicial);
     }
 });
 
@@ -775,9 +781,20 @@ function ligarMonitor() {
     if (_intervalAnalise) return; // já ligado
 
     console.log("[Aviator Monitor] ▶ Ligando monitor...");
-    ultimoHash   = "";
-    _saldoInicial = lerSaldo(); // captura saldo inicial da sessão
-    console.log("[Aviator Monitor] 💰 Saldo inicial:", _saldoInicial);
+    ultimoHash = "";
+
+    // Usa o saldoInicial da sessão persistida no storage
+    // Isso garante que Stop Loss/Gain funcionam mesmo após page refresh
+    chrome.storage.local.get(["sessao"], (data) => {
+        if (data.sessao && data.sessao.saldoInicial) {
+            _saldoInicial = data.sessao.saldoInicial;
+            console.log("[Aviator Monitor] 💰 Saldo inicial (da sessão):", _saldoInicial);
+        } else {
+            // Sem sessão salva — usa saldo atual como referência
+            _saldoInicial = lerSaldo();
+            console.log("[Aviator Monitor] 💰 Saldo inicial (novo):", _saldoInicial);
+        }
+    });
 
     // Observer principal de análise
     _observerAnalise = new MutationObserver(() => { analisarEEnviar(); });

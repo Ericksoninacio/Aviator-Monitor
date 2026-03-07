@@ -262,6 +262,62 @@ body {
     color: #334d6e;
     margin-top: 2px;
 }
+.banca-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 3px;
+    letter-spacing: 0.03em;
+    color: #334d6e;
+}
+.banca-pct.gain { color: #22c55e; }
+.banca-pct.loss { color: #ef4444; }
+
+/* ===== SESSÃO BAR ===== */
+.sessao-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 7px 10px;
+    background: #060d1a;
+    border: 1px solid #1e3a5f;
+    border-radius: 6px;
+}
+.sessao-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sessao-lbl {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #334d6e;
+    letter-spacing: 0.06em;
+}
+.sessao-timer {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #38bdf8;
+    letter-spacing: 0.05em;
+}
+.btn-nova-sessao {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+    background: transparent;
+    border: 1px solid #1e3a5f;
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+.btn-nova-sessao:hover {
+    color: #e2e8f0;
+    border-color: #38bdf8;
+}
 .divider-v {
     width: 1px;
     background: #0f1f35;
@@ -368,6 +424,32 @@ body {
     font-family: 'DM Mono', monospace;
     font-size: 9px;
     color: #334d6e;
+}
+.refresh-interval-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding: 8px 12px;
+    background: #080f1f;
+    border: 1px solid #1e3a5f;
+    border-radius: 7px;
+}
+.refresh-interval-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.refresh-interval-control .config-input {
+    width: 56px;
+    text-align: center;
+}
+.refresh-countdown {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #38bdf8;
+    min-width: 36px;
 }
 
 /* ===== ACTIONS ===== */

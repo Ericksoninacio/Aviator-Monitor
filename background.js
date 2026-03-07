@@ -24,6 +24,76 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("✅ [Aviator Monitor PRO] Instalado — configurações padrão definidas.");
 });
 
+// ================= AUTO REFRESH =================
+const ALARM_NAME = "autoRefreshAlarm";
+
+// Ao iniciar o service worker, reconfigura o alarme conforme o storage
+chrome.storage.local.get(["autoRefresh", "refreshInterval"], ({ autoRefresh, refreshInterval }) => {
+    configurarAlarme(autoRefresh === true, refreshInterval || 30);
+});
+
+// Escuta mudanças no storage (quando o popup salva as configurações)
+chrome.storage.onChanged.addListener((changes) => {
+    const novoRefresh   = changes.autoRefresh?.newValue;
+    const novoIntervalo = changes.refreshInterval?.newValue;
+
+    if (novoRefresh !== undefined || novoIntervalo !== undefined) {
+        chrome.storage.local.get(["autoRefresh", "refreshInterval"], ({ autoRefresh, refreshInterval }) => {
+            configurarAlarme(autoRefresh === true, refreshInterval || 30);
+        });
+    }
+});
+
+function configurarAlarme(ativo, intervalMinutos) {
+    chrome.alarms.clear(ALARM_NAME, () => {
+        if (!ativo) {
+            console.log("⏹ [AutoRefresh] Desativado.");
+            chrome.storage.local.remove("refreshNextAt");
+            return;
+        }
+        chrome.alarms.create(ALARM_NAME, {
+            delayInMinutes:   intervalMinutos,
+            periodInMinutes:  intervalMinutos,
+        });
+        const nextAt = Date.now() + intervalMinutos * 60 * 1000;
+        chrome.storage.local.set({ refreshNextAt: nextAt });
+        console.log(`⏱ [AutoRefresh] Alarme criado — a cada ${intervalMinutos} min.`);
+    });
+}
+
+// Quando o alarme disparar, recarrega a aba do jogo
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name !== ALARM_NAME) return;
+
+    console.log("🔄 [AutoRefresh] Recarregando aba do jogo...");
+
+    // Atualiza próximo horário no storage (para o countdown no popup)
+    chrome.storage.local.get(["refreshInterval"], ({ refreshInterval }) => {
+        const nextAt = Date.now() + (refreshInterval || 30) * 60 * 1000;
+        chrome.storage.local.set({ refreshNextAt: nextAt });
+    });
+
+    // Recarrega todas as abas que o content.js monitora (conforme manifest.json)
+    chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+            if (!tab.url) return;
+            const url = tab.url.toLowerCase();
+            if (
+                url.includes("superbet.bet.br") ||
+                url.includes("luck.bet.br")    ||
+                url.includes("spribegaming.com")
+            ) {
+                chrome.tabs.reload(tab.id, { bypassCache: true }, () => {
+                    console.log(`✅ [AutoRefresh] Aba recarregada: ${tab.url}`);
+                });
+            }
+        });
+    });
+
+    // Notifica o popup para atualizar o countdown
+    chrome.runtime.sendMessage({ type: "REFRESH_EXECUTED" }).catch(() => {});
+});
+
 // ── Clique na notificação: foca aba do jogo e fecha ──
 chrome.notifications.onClicked.addListener((notifId) => {
     chrome.notifications.clear(notifId, () => {});

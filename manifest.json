@@ -16,7 +16,7 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.superbet.bet.br/*",
+        "*://*.luck.bet.br/*",
         "*://*.superbet.com/*",
         "*://*.spribegaming.com/*"
       ],
@@ -30,7 +30,9 @@
     "storage",
     "notifications",
     "activeTab",
-    "scripting"
+    "scripting",
+    "alarms",
+    "tabs"
   ],
 
   "host_permissions": [
