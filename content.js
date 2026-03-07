@@ -9,11 +9,13 @@ let currentConfig = {
     oddProtecao:      10.00,
     valorMinimo:      1.00,
     autoEntrar:       false,
-    monitorAtivo:     true,    // ← botão liga/desliga geral
+    monitorAtivo:     true,
+    stopLoss:         0,       // % da banca — 0 = desativado
+    stopGain:         0,       // % da banca — 0 = desativado
 };
 
 chrome.storage.local.get(
-    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "valorMinimo", "autoEntrar", "monitorAtivo"],
+    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "valorMinimo", "autoEntrar", "monitorAtivo", "stopLoss", "stopGain"],
     (data) => {
         if (data.mode)               currentConfig.mode             = data.mode;
         if (typeof data.sound === "boolean") currentConfig.sound    = data.sound;
@@ -23,6 +25,8 @@ chrome.storage.local.get(
         if (data.valorMinimo)        currentConfig.valorMinimo      = data.valorMinimo;
         if (typeof data.autoEntrar  === "boolean") currentConfig.autoEntrar  = data.autoEntrar;
         if (typeof data.monitorAtivo === "boolean") currentConfig.monitorAtivo = data.monitorAtivo;
+        if (data.stopLoss  !== undefined) currentConfig.stopLoss  = data.stopLoss;
+        if (data.stopGain  !== undefined) currentConfig.stopGain  = data.stopGain;
     }
 );
 
@@ -35,6 +39,8 @@ chrome.storage.onChanged.addListener((changes) => {
     if (changes.valorMinimo)      currentConfig.valorMinimo      = changes.valorMinimo.newValue;
     if (changes.autoEntrar  !== undefined) currentConfig.autoEntrar  = changes.autoEntrar.newValue;
     if (changes.monitorAtivo !== undefined) currentConfig.monitorAtivo = changes.monitorAtivo.newValue;
+    if (changes.stopLoss      !== undefined) currentConfig.stopLoss      = changes.stopLoss.newValue;
+    if (changes.stopGain      !== undefined) currentConfig.stopGain      = changes.stopGain.newValue;
 });
 
 // ================= CLASSIFICAÇÃO =================
@@ -607,6 +613,28 @@ function analisarEEnviar() {
     console.log("[Aviator Monitor] 🎲 Nova rodada:", rodadaAtual, "→ hash:", hashRodada);
 
     const saldo   = lerSaldo();
+
+    // ── Stop Loss / Stop Gain ─────────────────────────────────────────────
+    if (saldo !== null && _saldoInicial !== null) {
+        const variacao = saldo - _saldoInicial;
+        const pct      = variacao / _saldoInicial * 100;
+
+        if (currentConfig.stopLoss > 0 && variacao < 0 && Math.abs(pct) >= currentConfig.stopLoss) {
+            console.warn(`[Aviator Monitor] 🛑 STOP LOSS atingido — variação: ${pct.toFixed(1)}%`);
+            chrome.runtime.sendMessage({ type: "STOP_TRIGGERED", motivo: "STOP_LOSS", pct: pct.toFixed(1), saldo });
+            desligarMonitor("STOP LOSS atingido");
+            chrome.storage.local.set({ monitorAtivo: false });
+            return;
+        }
+        if (currentConfig.stopGain > 0 && variacao > 0 && pct >= currentConfig.stopGain) {
+            console.log(`[Aviator Monitor] 🏆 STOP GAIN atingido — variação: +${pct.toFixed(1)}%`);
+            chrome.runtime.sendMessage({ type: "STOP_TRIGGERED", motivo: "STOP_GAIN", pct: pct.toFixed(1), saldo });
+            desligarMonitor("STOP GAIN atingido");
+            chrome.storage.local.set({ monitorAtivo: false });
+            return;
+        }
+    }
+
     const padrao  = detectarPadrao(results);
     const apostas = saldo ? calcularValores(
         saldo, currentConfig.porcentagemBanca,
@@ -633,7 +661,7 @@ function analisarEEnviar() {
 
 function shouldAlert(padrao) {
     if (currentConfig.mode === "TESTE") return true;
-    const thresholds = { AGRESSIVO: 60, MODERADO: 70, CONSERVADOR: 80 };
+    const thresholds = { AGRESSIVO: 13, MODERADO: 17, CONSERVADOR: 20 };
     const minimo = thresholds[currentConfig.mode] || 80;
     const passa  = padrao.confianca >= minimo;
     if (!passa) {
@@ -740,11 +768,16 @@ let _observerAnalise   = null;
 let _observerText      = null;
 let _observerOverlay   = null;
 
+// Saldo no momento em que o monitor foi ligado (para stop loss/gain)
+let _saldoInicial = null;
+
 function ligarMonitor() {
     if (_intervalAnalise) return; // já ligado
 
     console.log("[Aviator Monitor] ▶ Ligando monitor...");
-    ultimoHash = ""; // reseta hash para re-detectar tudo
+    ultimoHash   = "";
+    _saldoInicial = lerSaldo(); // captura saldo inicial da sessão
+    console.log("[Aviator Monitor] 💰 Saldo inicial:", _saldoInicial);
 
     // Observer principal de análise
     _observerAnalise = new MutationObserver(() => { analisarEEnviar(); });
@@ -771,8 +804,10 @@ function ligarMonitor() {
     console.log("[Aviator Monitor] ✅ Monitor ativo.");
 }
 
-function desligarMonitor() {
-    console.log("[Aviator Monitor] ⏹ Desligando monitor...");
+function desligarMonitor(motivo) {
+    const msg = motivo ? `⏹ Desligando monitor — ${motivo}` : "⏹ Desligando monitor...";
+    console.log("[Aviator Monitor]", msg);
+    _saldoInicial = null;
 
     if (_observerAnalise)  { _observerAnalise.disconnect();  _observerAnalise  = null; }
     if (_observerText)     { _observerText.disconnect();     _observerText     = null; }

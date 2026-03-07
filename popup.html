@@ -212,9 +212,9 @@
                         <label class="config-lbl" for="mode">Estratégia</label>
                         <select id="mode" class="config-select">
                             <option value="TESTE">Teste — todos</option>
-                            <option value="CONSERVADOR" selected>Conservador ≥80%</option>
-                            <option value="MODERADO">Moderado ≥70%</option>
-                            <option value="AGRESSIVO">Agressivo ≥60%</option>
+                            <option value="CONSERVADOR" selected>Conservador ≥20%</option>
+                            <option value="MODERADO">Moderado ≥17%</option>
+                            <option value="AGRESSIVO">Agressivo ≥13%</option>
                         </select>
                     </div>
                     <div class="config-item">
@@ -235,6 +235,33 @@
                             <input type="checkbox" id="sound" checked>
                             <span class="toggle-track"></span>
                         </label>
+                    </div>
+                </div>
+
+                <!-- Stop Loss / Stop Gain -->
+                <div class="stop-row">
+                    <div class="stop-item">
+                        <div class="stop-header">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                            <span class="stop-lbl stop-lbl--loss">STOP LOSS</span>
+                        </div>
+                        <div class="stop-input-row">
+                            <input type="number" id="stopLoss" class="config-input stop-input" value="0" min="0" max="100" step="1" placeholder="0">
+                            <span class="stop-unit">%</span>
+                        </div>
+                        <div class="stop-hint">0 = desativado</div>
+                    </div>
+                    <div class="stop-divider"></div>
+                    <div class="stop-item">
+                        <div class="stop-header">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12 12 16 16 12"/><line x1="12" y1="8" x2="12" y2="16"/></svg>
+                            <span class="stop-lbl stop-lbl--gain">STOP GAIN</span>
+                        </div>
+                        <div class="stop-input-row">
+                            <input type="number" id="stopGain" class="config-input stop-input" value="0" min="0" max="1000" step="1" placeholder="0">
+                            <span class="stop-unit">%</span>
+                        </div>
+                        <div class="stop-hint">0 = desativado</div>
                     </div>
                 </div>
 

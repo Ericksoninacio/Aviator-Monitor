@@ -9,6 +9,7 @@ let state = {
     lastClassificados: [],
     totalSinais:      0,
     ultimoSinal:      null,
+    notifTabMap:      {},
 };
 
 // ================= INSTALAÇÃO =================
@@ -21,6 +22,21 @@ chrome.runtime.onInstalled.addListener(() => {
         valorMinimo:      1.00,
     });
     console.log("✅ [Aviator Monitor PRO] Instalado — configurações padrão definidas.");
+});
+
+// ── Clique na notificação: foca aba do jogo e fecha ──
+chrome.notifications.onClicked.addListener((notifId) => {
+    chrome.notifications.clear(notifId, () => {});
+    const target = state.notifTabMap[notifId];
+    if (!target) return;
+    delete state.notifTabMap[notifId];
+    chrome.windows.update(target.windowId, { focused: true }, () => {
+        chrome.tabs.update(target.tabId, { active: true });
+    });
+});
+
+chrome.notifications.onClosed.addListener((notifId) => {
+    delete state.notifTabMap[notifId];
 });
 
 // ================= MENSAGENS =================
@@ -49,16 +65,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         const aposta1Txt = msg.apostas ? `R$ ${msg.apostas.valor1.toFixed(2)}` : "—";
         const aposta2Txt = msg.apostas ? `R$ ${msg.apostas.valor2.toFixed(2)}` : "—";
 
-        chrome.notifications.create(`signal-${Date.now()}`, {
-            type:     "basic",
-            iconUrl:  "icons/icon128.png",
-            title:    `🚀 ${msg.padrao?.nome || "SINAL DETECTADO"}`,
-            message:  `Confiança: ${msg.padrao?.confianca}% | E1: ${aposta1Txt} | Proteção: ${aposta2Txt}`,
-            priority: 2
+        const originTabId    = sender.tab?.id;
+        const originWindowId = sender.tab?.windowId;
+        const notifId        = `signal-${Date.now()}`;
+
+        chrome.notifications.create(notifId, {
+            type:               "basic",
+            iconUrl:            "icons/icon128.png",
+            title:              `🚀 ${msg.padrao?.nome || "SINAL DETECTADO"}`,
+            message:            `Confiança: ${msg.padrao?.confianca}% | E1: ${aposta1Txt} | Proteção: ${aposta2Txt}`,
+            priority:           2,
+            requireInteraction: false
         }, (id) => {
             if (chrome.runtime.lastError) {
                 console.error("❌ Notificação:", chrome.runtime.lastError);
+                return;
             }
+            // Fecha automaticamente após 6s
+            setTimeout(() => chrome.notifications.clear(id, () => {}), 6000);
+            // Guarda tab de origem para focar ao clicar
+            if (originTabId) state.notifTabMap[id] = { tabId: originTabId, windowId: originWindowId };
         });
 
         // Badge animado
@@ -88,6 +114,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // --- Popup pede estado atual ---
     if (msg.type === "GET_STATE") {
         sendResponse({ ok: true, ...state });
+    }
+
+    // --- Stop Loss / Gain acionado pelo content ---
+    if (msg.type === "STOP_TRIGGERED") {
+        const emoji  = msg.motivo === "STOP_LOSS" ? "🛑" : "🏆";
+        const titulo = msg.motivo === "STOP_LOSS" ? "Stop Loss atingido" : "Stop Gain atingido";
+        const sinal  = msg.pct > 0 ? `+${msg.pct}` : msg.pct;
+
+        chrome.notifications.create(`stop-${Date.now()}`, {
+            type:               "basic",
+            iconUrl:            "icons/icon128.png",
+            title:              `${emoji} ${titulo}`,
+            message:            `Variação: ${sinal}% | Saldo atual: R$ ${parseFloat(msg.saldo).toFixed(2)} | Monitor desligado.`,
+            priority:           2,
+            requireInteraction: true   // fica até o usuário fechar
+        });
+
+        // Atualiza estado
+        state.lastPadrao = null;
+        chrome.storage.local.set({ monitorAtivo: false });
+
+        // Notifica popup para atualizar o botão power
+        chrome.runtime.sendMessage({ type: "SET_MONITOR", ativo: false }).catch(() => {});
     }
 
     // --- Liga/desliga geral → repassa ao content ---

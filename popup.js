@@ -13,6 +13,8 @@ const modeSelect       = document.getElementById("mode");
 const porcentagemInp   = document.getElementById("porcentagem");
 const odd1Inp          = document.getElementById("odd1");
 const odd2Inp          = document.getElementById("odd2");
+const stopLossInp      = document.getElementById("stopLoss");
+const stopGainInp      = document.getElementById("stopGain");
 const protecaoSub      = document.getElementById("protecaoSub");
 const soundToggle      = document.getElementById("sound");
 const autoEntrarToggle = document.getElementById("autoEntrar");
@@ -68,12 +70,14 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
 
 // ===== CARREGAR CONFIGURAÇÕES =====
 chrome.storage.local.get(
-    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "autoEntrar"],
+    ["mode", "sound", "porcentagemBanca", "oddEntrada1", "oddProtecao", "autoEntrar", "stopLoss", "stopGain"],
     (data) => {
         if (data.mode)             modeSelect.value   = data.mode;
         if (data.porcentagemBanca) porcentagemInp.value = Math.round(data.porcentagemBanca * 100);
         if (data.oddEntrada1)      odd1Inp.value      = data.oddEntrada1;
         if (data.oddProtecao)      odd2Inp.value      = data.oddProtecao;
+        if (data.stopLoss !== undefined) stopLossInp.value = data.stopLoss;
+        if (data.stopGain !== undefined) stopGainInp.value = data.stopGain;
         soundToggle.checked    = data.sound !== false;
         if (typeof data.autoEntrar === "boolean") autoEntrarToggle.checked = data.autoEntrar;
     }
@@ -91,11 +95,13 @@ function save() {
         porcentagemBanca: isNaN(porcentagem) ? 0.05  : Math.max(0.01,  Math.min(0.5,  porcentagem)),
         oddEntrada1:      isNaN(odd1)        ? 1.30  : Math.max(1.01,  Math.min(10,   odd1)),
         oddProtecao:      isNaN(odd2)        ? 10.00 : Math.max(1.01,  Math.min(100,  odd2)),
+        stopLoss:         Math.max(0, Math.min(100,  parseFloat(stopLossInp.value) || 0)),
+        stopGain:         Math.max(0, Math.min(1000, parseFloat(stopGainInp.value) || 0)),
     });
     showStatus("✔ Salvo", "#22c55e");
 }
 
-[modeSelect, porcentagemInp, odd1Inp, odd2Inp, soundToggle, autoEntrarToggle].forEach(el => {
+[modeSelect, porcentagemInp, odd1Inp, odd2Inp, stopLossInp, stopGainInp, soundToggle, autoEntrarToggle].forEach(el => {
     el.addEventListener("change", save);
 });
 
@@ -212,6 +218,8 @@ chrome.runtime.sendMessage({ type: "GET_STATE" }, (response) => {
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "ANALYSIS_UPDATE") applyState(msg);
     if (msg.type === "EXECUTE_SOUND")   playAlert();
+    // Stop Loss/Gain desligou o monitor — atualiza botão power
+    if (msg.type === "SET_MONITOR" && msg.ativo === false) aplicarEstadoPower(false);
 });
 
 // ===== ÁUDIO =====
